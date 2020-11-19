@@ -1,3 +1,6 @@
+################################################################################
+# Ignored files for STM32 software
+
 */Debug
 *.o
 
@@ -11,12 +14,15 @@
 *.bck
 *.kicad_pcb-bak
 *.sch-bak
+*.dcm
+*-rescue.lib
 *~
 _autosave-*
 *.tmp
 *-save.pro
 *-save.kicad_pcb
 fp-info-cache
+sym-lib-table
 
 # Netlist files (exported from Eeschema)
 *.net
