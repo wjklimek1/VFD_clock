@@ -1970,4 +1970,54 @@ Wire Notes Line
 	5500 6700 5500 9350
 Wire Notes Line
 	5500 9350 1050 9350
+$Comp
+L Connector:Conn_01x04_Female J6
+U 1 1 5FB809FA
+P 1950 3050
+F 0 "J6" H 1978 3026 50  0000 L CNN
+F 1 "VFD display power" H 1978 2935 50  0000 L CNN
+F 2 "Connector_PinSocket_2.54mm:PinSocket_1x04_P2.54mm_Vertical" H 1950 3050 50  0001 C CNN
+F 3 "~" H 1950 3050 50  0001 C CNN
+	1    1950 3050
+	1    0    0    -1  
+$EndComp
+$Comp
+L power:GND #PWR0124
+U 1 1 5FB854C8
+P 1600 3300
+F 0 "#PWR0124" H 1600 3050 50  0001 C CNN
+F 1 "GND" H 1605 3127 50  0000 C CNN
+F 2 "" H 1600 3300 50  0001 C CNN
+F 3 "" H 1600 3300 50  0001 C CNN
+	1    1600 3300
+	1    0    0    -1  
+$EndComp
+Wire Wire Line
+	1750 3250 1600 3250
+Wire Wire Line
+	1600 3250 1600 3300
+Wire Wire Line
+	1750 2950 1600 2950
+Wire Wire Line
+	1600 2950 1600 3250
+Connection ~ 1600 3250
+$Comp
+L power:+3.3V #PWR0125
+U 1 1 5FC0E222
+P 1300 3000
+F 0 "#PWR0125" H 1300 2850 50  0001 C CNN
+F 1 "+3.3V" H 1315 3173 50  0000 C CNN
+F 2 "" H 1300 3000 50  0001 C CNN
+F 3 "" H 1300 3000 50  0001 C CNN
+	1    1300 3000
+	1    0    0    -1  
+$EndComp
+Text Label 1300 3150 2    50   ~ 0
+VIN
+Wire Wire Line
+	1300 3050 1300 3000
+Wire Wire Line
+	1300 3050 1750 3050
+Wire Wire Line
+	1300 3150 1750 3150
 $EndSCHEMATC
