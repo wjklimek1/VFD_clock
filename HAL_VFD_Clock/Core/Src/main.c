@@ -1,21 +1,21 @@
 /* USER CODE BEGIN Header */
 /**
-  ******************************************************************************
-  * @file           : main.c
-  * @brief          : Main program body
-  ******************************************************************************
-  * @attention
-  *
-  * <h2><center>&copy; Copyright (c) 2020 STMicroelectronics.
-  * All rights reserved.</center></h2>
-  *
-  * This software component is licensed by ST under BSD 3-Clause license,
-  * the "License"; You may not use this file except in compliance with the
-  * License. You may obtain a copy of the License at:
-  *                        opensource.org/licenses/BSD-3-Clause
-  *
-  ******************************************************************************
-  */
+ ******************************************************************************
+ * @file           : main.c
+ * @brief          : Main program body
+ ******************************************************************************
+ * @attention
+ *
+ * <h2><center>&copy; Copyright (c) 2020 STMicroelectronics.
+ * All rights reserved.</center></h2>
+ *
+ * This software component is licensed by ST under BSD 3-Clause license,
+ * the "License"; You may not use this file except in compliance with the
+ * License. You may obtain a copy of the License at:
+ *                        opensource.org/licenses/BSD-3-Clause
+ *
+ ******************************************************************************
+ */
 /* USER CODE END Header */
 /* Includes ------------------------------------------------------------------*/
 #include "main.h"
@@ -27,7 +27,7 @@
 
 /* Private includes ----------------------------------------------------------*/
 /* USER CODE BEGIN Includes */
-
+#include "display.h"
 /* USER CODE END Includes */
 
 /* Private typedef -----------------------------------------------------------*/
@@ -58,6 +58,11 @@ void SystemClock_Config(void);
 
 /* Private user code ---------------------------------------------------------*/
 /* USER CODE BEGIN 0 */
+
+void HAL_TIM_PeriodElapsedCallback(TIM_HandleTypeDef* htim)
+{
+    multiplexerSequence();
+}
 
 /* USER CODE END 0 */
 
@@ -94,21 +99,58 @@ int main(void)
   MX_TIM1_Init();
   MX_USART1_UART_Init();
   MX_TIM2_Init();
+  MX_TIM3_Init();
   /* USER CODE BEGIN 2 */
 
-  __HAL_TIM_SET_COMPARE(&htim2, TIM_CHANNEL_1, 125);
-  HAL_TIM_PWM_Start(&htim2, TIM_CHANNEL_1);
+	// Start timer for buzzer
+	__HAL_TIM_SET_COMPARE(&htim1, TIM_CHANNEL_1, 0);
+	HAL_TIM_PWM_Start(&htim1, TIM_CHANNEL_1);
+
+    // Start timer for VFD tube H-bridge powering
+	__HAL_TIM_SET_COMPARE(&htim2, TIM_CHANNEL_1, 500);
+	HAL_TIM_PWM_Start(&htim2, TIM_CHANNEL_1);
+
+	// Start timer for multiplexing
+	HAL_TIM_Base_Start_IT(&htim3);
+
+	HAL_GPIO_WritePin(L1_GPIO_Port, L1_Pin, 0);
+	HAL_GPIO_WritePin(L2_GPIO_Port, L2_Pin, 0);
+	HAL_GPIO_WritePin(L3_GPIO_Port, L3_Pin, 0);
+	HAL_GPIO_WritePin(L4_GPIO_Port, L4_Pin, 0);
+	HAL_GPIO_WritePin(L5_GPIO_Port, L5_Pin, 0);
+	HAL_GPIO_WritePin(L6_GPIO_Port, L6_Pin, 0);
+	HAL_GPIO_WritePin(L7_GPIO_Port, L7_Pin, 0);
+	HAL_GPIO_WritePin(L8_GPIO_Port, L8_Pin, 0);
+
+	HAL_GPIO_WritePin(SEG_A_GPIO_Port, SEG_A_Pin, 0);
+	HAL_GPIO_WritePin(SEG_B_GPIO_Port, SEG_B_Pin, 0);
+	HAL_GPIO_WritePin(SEG_C_GPIO_Port, SEG_C_Pin, 0);
+	HAL_GPIO_WritePin(SEG_D_GPIO_Port, SEG_D_Pin, 0);
+	HAL_GPIO_WritePin(SEG_E_GPIO_Port, SEG_E_Pin, 0);
+	HAL_GPIO_WritePin(SEG_F_GPIO_Port, SEG_F_Pin, 0);
+	HAL_GPIO_WritePin(SEG_G_GPIO_Port, SEG_G_Pin, 0);
+	HAL_GPIO_WritePin(SEG_H_GPIO_Port, SEG_H_Pin, 0);
+
+	tab_to_display[0] = mask_9;
+	tab_to_display[1] = mask_5;
+	tab_to_display[2] = mask_hypen;
+	tab_to_display[3] = mask_5;
+	tab_to_display[4] = mask_4;
+	tab_to_display[5] = mask_hypen;
+	tab_to_display[6] = mask_2;
+	tab_to_display[7] = mask_1;
 
   /* USER CODE END 2 */
 
   /* Infinite loop */
   /* USER CODE BEGIN WHILE */
-  while (1)
-  {
+	while (1)
+	{
+		//multiplexerSequence();
     /* USER CODE END WHILE */
 
     /* USER CODE BEGIN 3 */
-  }
+	}
   /* USER CODE END 3 */
 }
 
@@ -160,7 +202,7 @@ void SystemClock_Config(void)
 void Error_Handler(void)
 {
   /* USER CODE BEGIN Error_Handler_Debug */
-  /* User can add his own implementation to report the HAL error return state */
+	/* User can add his own implementation to report the HAL error return state */
 
   /* USER CODE END Error_Handler_Debug */
 }
