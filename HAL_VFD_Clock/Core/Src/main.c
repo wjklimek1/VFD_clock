@@ -8,7 +8,7 @@
 #include "display.h"
 #include "DS3231.h"
 
-#define MENU_WATCHDOG_MAX 3000;
+#define MENU_WATCHDOG_MAX 3000
 
 void SystemClock_Config(void);
 
@@ -44,6 +44,19 @@ void HAL_GPIO_EXTI_Callback(uint16_t GPIO_Pin)
 	if(GPIO_Pin == BUTTON_MINUS_Pin)
 		MINUS_flag = 1;
 }
+/*
+ * @brief Checks if given year has 29 days in February
+ *
+ * @param[in] year year in full decimal format
+ */
+
+bool isLeapYear(int32_t year)
+{
+	if((year % 4 == 0 && year % 100 != 0) || year % 400 == 0)
+		return true;
+	else
+		return false;
+}
 
 void change_time(_RTC *local_RTC)
 {
@@ -57,20 +70,26 @@ void change_time(_RTC *local_RTC)
 
 	while (menu_watchdog > 0)
 	{
-		displayHour(local_RTC->Hour, local_RTC->Min, local_RTC->Sec);
+		//decide what to display - clock (time) or calendar (date)
+		if(current_selection < 3)
+			displayHour(local_RTC->Hour, local_RTC->Min, local_RTC->Sec);
+		else if(current_selection >= 3)
+			displayDate(local_RTC->Date, local_RTC->Month, local_RTC->Year);
 
 		if(SEL_flag == 1)
 		{
 			SEL_flag = 0;
 			current_selection++;
-			if(current_selection == 3)
+			menu_watchdog = MENU_WATCHDOG_MAX;
+			if(current_selection == 6)
 				menu_watchdog = 0;
+
 		}
 
 		//change hours
 		if(PLUS_flag == 1 && current_selection == 0)
 		{
-			//increment hours
+			//increment hours ------------------------------------------------------------------------------
 			if(local_RTC->Hour >= 23)
 				local_RTC->Hour = 0;
 			else
@@ -89,10 +108,10 @@ void change_time(_RTC *local_RTC)
 			MINUS_flag = 0;
 		}
 
-		//change minutes
+		//change minutes ------------------------------------------------------------------------------
 		if(PLUS_flag == 1 && current_selection == 1)
 		{
-			//increment hours
+			//increment minutes
 			if(local_RTC->Min >= 59)
 				local_RTC->Min = 0;
 			else
@@ -102,7 +121,7 @@ void change_time(_RTC *local_RTC)
 		}
 		if(MINUS_flag == 1 && current_selection == 1)
 		{
-			//decrement hours
+			//decrement minutes
 			if(local_RTC->Min == 0)
 				local_RTC->Min = 59;
 			else
@@ -111,10 +130,10 @@ void change_time(_RTC *local_RTC)
 			MINUS_flag = 0;
 		}
 
-		//change seconds
+		//change seconds ------------------------------------------------------------------------------
 		if(PLUS_flag == 1 && current_selection == 2)
 		{
-			//increment hours
+			//increment seconds
 			if(local_RTC->Sec >= 59)
 				local_RTC->Sec = 0;
 			else
@@ -124,7 +143,7 @@ void change_time(_RTC *local_RTC)
 		}
 		if(MINUS_flag == 1 && current_selection == 2)
 		{
-			//decrement hours
+			//decrement seconds
 			if(local_RTC->Sec == 0)
 				local_RTC->Sec = 59;
 			else
@@ -133,18 +152,92 @@ void change_time(_RTC *local_RTC)
 			MINUS_flag = 0;
 		}
 
+		//change day of month ------------------------------------------------------------------------------
+		if(PLUS_flag == 1 && current_selection == 3)
+		{
+			//increment day
+			if(local_RTC->Date >= 31)
+				local_RTC->Date = 1;
+			else
+				local_RTC->Date++;
+			menu_watchdog = MENU_WATCHDOG_MAX;
+			PLUS_flag = 0;
+		}
+		if(MINUS_flag == 1 && current_selection == 3)
+		{
+			//decrement day
+			if(local_RTC->Date == 1)
+				local_RTC->Date = 31;
+			else
+				local_RTC->Date--;
+			menu_watchdog = MENU_WATCHDOG_MAX;
+			MINUS_flag = 0;
+		}
+
+		//change month ------------------------------------------------------------------------------
+		if(PLUS_flag == 1 && current_selection == 4)
+		{
+			//increment month
+			if(local_RTC->Month >= 12)
+				local_RTC->Month = 1;
+			else
+				local_RTC->Month++;
+			menu_watchdog = MENU_WATCHDOG_MAX;
+			PLUS_flag = 0;
+		}
+		if(MINUS_flag == 1 && current_selection == 4)
+		{
+			//decrement month
+			if(local_RTC->Month == 1)
+				local_RTC->Month = 1;
+			else
+				local_RTC->Month--;
+			menu_watchdog = MENU_WATCHDOG_MAX;
+			MINUS_flag = 0;
+		}
+
+		//change year ------------------------------------------------------------------------------
+		if(PLUS_flag == 1 && current_selection == 5)
+		{
+			//increment year
+			if(local_RTC->Year >= 99)
+				local_RTC->Year = 99;
+			else
+				local_RTC->Year++;
+			menu_watchdog = MENU_WATCHDOG_MAX;
+			PLUS_flag = 0;
+		}
+		if(MINUS_flag == 1 && current_selection == 5)
+		{
+			//decrement year
+			if(local_RTC->Year == 0)
+				local_RTC->Year = 0;
+			else
+				local_RTC->Year--;
+
+			menu_watchdog = MENU_WATCHDOG_MAX;
+			MINUS_flag = 0;
+		}
+
 		//blink active selection
 		if(current_selection == 0)
-			blink_mask = 0b00111111;
+			blink_mask = 0b00111111;  //blink first two digits for hour selection
 		if(current_selection == 1)
-			blink_mask = 0b11100111;
+			blink_mask = 0b11100111;  //blink middle two digits for minutes selection
 		if(current_selection == 2)
-			blink_mask = 0b11111100;
+			blink_mask = 0b11111100;  //blink last two digits for second selection
+		if(current_selection == 3)
+			blink_mask = 0b00111111;  //blink first two digits for day of month selection
+		if(current_selection == 4)
+			blink_mask = 0b11001111;  //blink second pair of digits for month selection
+		if(current_selection == 5)
+			blink_mask = 0b11110000;  //blink last 4 digits for year selection
 
 		HAL_Delay(1);
 		menu_watchdog--;
 	}
 	DS3231_SetTime(local_RTC);
+	RTC_saved_flag = 1;
 	blink_mask = 0b11111111;
 }
 
@@ -186,12 +279,25 @@ int main(void)
 		//normal operation mode - display time and date
 		if(RTC_saved_flag == 1)
 		{
+			static uint16_t date_or_hour_timer = 0;
+
 			DS3231_GetTime(&local_RTC);
-			displayHour(local_RTC.Hour, local_RTC.Min, local_RTC.Sec);
+			if(date_or_hour_timer < 200)
+			{
+				displayDate(local_RTC.Date, local_RTC.Month, local_RTC.Year);
+			}
+			else
+			{
+				displayHour(local_RTC.Hour, local_RTC.Min, local_RTC.Sec);
+			}
+			date_or_hour_timer++;
+			if(date_or_hour_timer == 1200)
+				date_or_hour_timer = 0;
 			HAL_Delay(10);
 		}
 		if(SEL_flag == 1)
 		{
+			RTC_saved_flag = 0;
 			change_time(&local_RTC);
 		}
 
