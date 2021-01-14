@@ -40,10 +40,16 @@ void multiplexerSequence()
 {
 	static uint8_t i = 0;
 	static uint8_t x = 1;
+	static uint16_t blink_timer = 0;
 
 	dispChar(tab_to_display[i]);
-	selectDisplay(x << i);
-	i++;
+	if(blink_timer > (0xFFFF / 2))
+		selectDisplay(x << i);
+	else
+		selectDisplay((x << i) & blink_mask);
+
+	++i;
+	blink_timer += 64;
 
 	if(i >= 8)
 		i = 0;

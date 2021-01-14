@@ -45,6 +45,8 @@
 
 //array of bit mask of characters that will be actually displayed on VFD tube
 uint8_t tab_to_display[8];
+//mask that selects displays that will blink (for setting time and date)
+uint8_t blink_mask;
 
 void dispChar(uint8_t symbol_mask);
 void selectDisplay(uint8_t displays_mask);

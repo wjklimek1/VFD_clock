@@ -6,6 +6,9 @@
 #include "gpio.h"
 
 #include "display.h"
+#include "DS3231.h"
+
+#define MENU_WATCHDOG_MAX 3000;
 
 void SystemClock_Config(void);
 
@@ -13,7 +16,7 @@ volatile uint8_t SEL_flag = 0;
 volatile uint8_t PLUS_flag = 0;
 volatile uint8_t MINUS_flag = 0;
 
-volatile uint32_t menu_watchdog = 0;
+volatile int32_t menu_watchdog = 0;
 volatile uint8_t RTC_saved_flag = 1;
 
 /* @brief TIM3 period elapsed callback - multiplexing
@@ -42,6 +45,109 @@ void HAL_GPIO_EXTI_Callback(uint16_t GPIO_Pin)
 		MINUS_flag = 1;
 }
 
+void change_time(_RTC *local_RTC)
+{
+	SEL_flag = 0;
+	PLUS_flag = 0;
+	MINUS_flag = 0;
+
+	uint8_t current_selection = 0;
+
+	menu_watchdog = MENU_WATCHDOG_MAX;
+
+	while (menu_watchdog > 0)
+	{
+		displayHour(local_RTC->Hour, local_RTC->Min, local_RTC->Sec);
+
+		if(SEL_flag == 1)
+		{
+			SEL_flag = 0;
+			current_selection++;
+			if(current_selection == 3)
+				menu_watchdog = 0;
+		}
+
+		//change hours
+		if(PLUS_flag == 1 && current_selection == 0)
+		{
+			//increment hours
+			if(local_RTC->Hour >= 23)
+				local_RTC->Hour = 0;
+			else
+				local_RTC->Hour++;
+			menu_watchdog = MENU_WATCHDOG_MAX;
+			PLUS_flag = 0;
+		}
+		if(MINUS_flag == 1 && current_selection == 0)
+		{
+			//decrement hours
+			if(local_RTC->Hour == 0)
+				local_RTC->Hour = 23;
+			else
+				local_RTC->Hour--;
+			menu_watchdog = MENU_WATCHDOG_MAX;
+			MINUS_flag = 0;
+		}
+
+		//change minutes
+		if(PLUS_flag == 1 && current_selection == 1)
+		{
+			//increment hours
+			if(local_RTC->Min >= 59)
+				local_RTC->Min = 0;
+			else
+				local_RTC->Min++;
+			menu_watchdog = MENU_WATCHDOG_MAX;
+			PLUS_flag = 0;
+		}
+		if(MINUS_flag == 1 && current_selection == 1)
+		{
+			//decrement hours
+			if(local_RTC->Min == 0)
+				local_RTC->Min = 59;
+			else
+				local_RTC->Min--;
+			menu_watchdog = MENU_WATCHDOG_MAX;
+			MINUS_flag = 0;
+		}
+
+		//change seconds
+		if(PLUS_flag == 1 && current_selection == 2)
+		{
+			//increment hours
+			if(local_RTC->Sec >= 59)
+				local_RTC->Sec = 0;
+			else
+				local_RTC->Sec++;
+			menu_watchdog = MENU_WATCHDOG_MAX;
+			PLUS_flag = 0;
+		}
+		if(MINUS_flag == 1 && current_selection == 2)
+		{
+			//decrement hours
+			if(local_RTC->Sec == 0)
+				local_RTC->Sec = 59;
+			else
+				local_RTC->Sec--;
+			menu_watchdog = MENU_WATCHDOG_MAX;
+			MINUS_flag = 0;
+		}
+
+		//blink active selection
+		if(current_selection == 0)
+			blink_mask = 0b00111111;
+		if(current_selection == 1)
+			blink_mask = 0b11100111;
+		if(current_selection == 2)
+			blink_mask = 0b11111100;
+
+		HAL_Delay(1);
+		menu_watchdog--;
+	}
+	DS3231_SetTime(local_RTC);
+	blink_mask = 0b11111111;
+}
+
 int main(void)
 {
 	HAL_Init();
@@ -65,22 +171,30 @@ int main(void)
 
 	// Start timer for multiplexing
 	HAL_TIM_Base_Start_IT(&htim3);
+	//reset blink mask
+	blink_mask = 0b11111111;
+
+	// Init DS3231 RTC
+	_RTC local_RTC;
+	DS3231_Init(&hi2c2);
 
 	dispString("hell0", 5);
 	HAL_Delay(2000);
 
-	HAL_GPIO_TogglePin(LED_GPIO_Port, LED_Pin);
-
 	while (1)
 	{
-		displayHour(23, 48, 32);
-		HAL_Delay(3000);
-		displayDate(1, 8, 21);
-		HAL_Delay(3000);
-		dispString("    23*c  ", 7);
-		HAL_Delay(5000);
-		dispString("h 45 pro", 7);
-		HAL_Delay(5000);
+		//normal operation mode - display time and date
+		if(RTC_saved_flag == 1)
+		{
+			DS3231_GetTime(&local_RTC);
+			displayHour(local_RTC.Hour, local_RTC.Min, local_RTC.Sec);
+			HAL_Delay(10);
+		}
+		if(SEL_flag == 1)
+		{
+			change_time(&local_RTC);
+		}
+
 	}
 }
 
