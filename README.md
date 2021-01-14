@@ -10,3 +10,9 @@ RTC - DS3231 I2C real time clock
 
 DS18B20 - 1-Wire temperature sensor (not utilized in software yet)
 DHT11   - digital relative humidity sensor (not utilized in software yet)
+
+![VFD clock displaying time](https://github.com/wjklimek1/VFD_clock/blob/master/readme_assets/VFD_time.jpg?raw=true)
+
+![VFD clock displaying date](https://github.com/wjklimek1/VFD_clock/blob/master/readme_assets/VFD_date.jpg?raw=true)
+
+![VFD clock driver PCB](https://github.com/wjklimek1/VFD_clock/blob/master/readme_assets/VFD_driver_PCB_top.jpg?raw=true)
