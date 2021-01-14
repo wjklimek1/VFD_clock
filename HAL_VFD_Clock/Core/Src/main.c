@@ -1,4 +1,3 @@
-
 #include "main.h"
 #include "dma.h"
 #include "i2c.h"
@@ -10,6 +9,13 @@
 
 void SystemClock_Config(void);
 
+volatile uint8_t SEL_flag = 0;
+volatile uint8_t PLUS_flag = 0;
+volatile uint8_t MINUS_flag = 0;
+
+volatile uint32_t menu_watchdog = 0;
+volatile uint8_t RTC_saved_flag = 1;
+
 /* @brief TIM3 period elapsed callback - multiplexing
  *
  * Callback of timer 3 that is triggered in 1ms interval. It calls function that operates display multiplexer.
@@ -18,6 +24,22 @@ void SystemClock_Config(void);
 void HAL_TIM_PeriodElapsedCallback(TIM_HandleTypeDef *htim)
 {
 	multiplexerSequence();
+}
+
+/* @brief External GPIO Interrupt Callback
+ *
+ * Callback of buttons and RTC EXTI events. Sets event flags to true;
+ */
+void HAL_GPIO_EXTI_Callback(uint16_t GPIO_Pin)
+{
+	HAL_GPIO_TogglePin(LED_GPIO_Port, LED_Pin);
+
+	if(GPIO_Pin == BUTTON_SELECT_Pin)
+		SEL_flag = 1;
+	if(GPIO_Pin == BUTTON_PLUS_Pin)
+		PLUS_flag = 1;
+	if(GPIO_Pin == BUTTON_MINUS_Pin)
+		MINUS_flag = 1;
 }
 
 int main(void)
@@ -44,22 +66,17 @@ int main(void)
 	// Start timer for multiplexing
 	HAL_TIM_Base_Start_IT(&htim3);
 
-	HAL_Delay(1000);
+	dispString("hell0", 5);
+	HAL_Delay(2000);
 
-	char numbers[] = "1234567890";
-	char hello[] = " hell0  ";
-	char date[] = " 2012020";
+	HAL_GPIO_TogglePin(LED_GPIO_Port, LED_Pin);
 
 	while (1)
 	{
-		dispString(numbers, 7);
-		HAL_Delay(1000);
-		dispString(hello, 7);
-		HAL_Delay(1000);
-		dispString(date, 7);
-		tab_to_display[4] |= mask_dot;
-		tab_to_display[6] |= mask_dot;
-		HAL_Delay(1000);
+		displayHour(23, 48, 32);
+		HAL_Delay(3000);
+		displayDate(1, 8, 21);
+		HAL_Delay(3000);
 		dispString("    23*c  ", 7);
 		HAL_Delay(5000);
 		dispString("h 45 pro", 7);
@@ -102,7 +119,6 @@ void SystemClock_Config(void)
 		Error_Handler();
 	}
 }
-
 
 /**
  * @brief  This function is executed in case of error occurrence.

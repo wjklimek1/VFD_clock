@@ -164,4 +164,6 @@ bool ForceConversion()
 	{
 		ReadRegister(DS3231_REG_CONTROL, &value);
 	}
+
+	return true;
 }
