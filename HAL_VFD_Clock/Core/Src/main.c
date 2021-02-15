@@ -32,6 +32,8 @@ void HAL_TIM_PeriodElapsedCallback(TIM_HandleTypeDef *htim)
 /* @brief External GPIO Interrupt Callback
  *
  * Callback of buttons and RTC EXTI events. Sets event flags to true;
+ *
+ * @param[in] GPIO_Pin number of GPIO pin that caused interrupt
  */
 void HAL_GPIO_EXTI_Callback(uint16_t GPIO_Pin)
 {
@@ -49,7 +51,6 @@ void HAL_GPIO_EXTI_Callback(uint16_t GPIO_Pin)
  *
  * @param[in] year year in full decimal format
  */
-
 bool isLeapYear(int32_t year)
 {
 	if((year % 4 == 0 && year % 100 != 0) || year % 400 == 0)
@@ -58,14 +59,62 @@ bool isLeapYear(int32_t year)
 		return false;
 }
 
+/*
+ * @brief Returns number of days in current month.
+ *
+ * Checks for leap years and returns 29 for February in such year.
+ *
+ * @param[in] local_RTC pointer to structure with RTC date and time
+ */
+
+uint8_t daysInMonth(_RTC *local_RTC)
+{
+	switch (local_RTC->Month)
+	{
+		case 1:
+		case 3:
+		case 5:
+		case 7:
+		case 8:
+		case 10:
+		case 12:
+			return 31;
+		case 6:
+		case 9:
+		case 11:
+			return 30;
+		case 2:
+		{
+			if(isLeapYear(local_RTC->Year))
+				return 29;
+			else
+				return 28;
+		}
+	}
+	return 0;
+}
+
 void change_time(_RTC *local_RTC)
 {
+	//reset buttons flag - just to be sure they are 0
 	SEL_flag = 0;
 	PLUS_flag = 0;
 	MINUS_flag = 0;
 
+	/* variable keeps ID of currently selected menu entry:
+	0 - hours
+	1 - minutes
+	2 - seconds
+	3 - day
+	4 - month
+	5 - year
+	6 - exit from menu
+	*/
 	uint8_t current_selection = 0;
 
+	/* Watchdog variable is decremented every loop cycle. It is restored to original value
+	 * if any button was pressed before it reaches zero.
+	 */
 	menu_watchdog = MENU_WATCHDOG_MAX;
 
 	while (menu_watchdog > 0)
@@ -78,10 +127,10 @@ void change_time(_RTC *local_RTC)
 
 		if(SEL_flag == 1)
 		{
-			SEL_flag = 0;
-			current_selection++;
-			menu_watchdog = MENU_WATCHDOG_MAX;
-			if(current_selection == 6)
+			SEL_flag = 0;                      //reset button flag
+			current_selection++;               //increment menu entry ID
+			menu_watchdog = MENU_WATCHDOG_MAX; //reset watchdog
+			if(current_selection == 6)         //if menu was skipped, set watchdog to 0 and brake loop in next iteration
 				menu_watchdog = 0;
 
 		}
@@ -155,8 +204,8 @@ void change_time(_RTC *local_RTC)
 		//change day of month ------------------------------------------------------------------------------
 		if(PLUS_flag == 1 && current_selection == 3)
 		{
-			//increment day
-			if(local_RTC->Date >= 31)
+			//increment day if current month has 31 days
+			if(local_RTC->Date >= daysInMonth(local_RTC))
 				local_RTC->Date = 1;
 			else
 				local_RTC->Date++;
@@ -167,7 +216,7 @@ void change_time(_RTC *local_RTC)
 		{
 			//decrement day
 			if(local_RTC->Date == 1)
-				local_RTC->Date = 31;
+				local_RTC->Date = daysInMonth(local_RTC);
 			else
 				local_RTC->Date--;
 			menu_watchdog = MENU_WATCHDOG_MAX;
@@ -189,7 +238,7 @@ void change_time(_RTC *local_RTC)
 		{
 			//decrement month
 			if(local_RTC->Month == 1)
-				local_RTC->Month = 1;
+				local_RTC->Month = 12;
 			else
 				local_RTC->Month--;
 			menu_watchdog = MENU_WATCHDOG_MAX;
