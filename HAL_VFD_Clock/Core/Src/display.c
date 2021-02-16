@@ -197,10 +197,19 @@ void dispString(const char *string, uint8_t pos)
 
 /*
  * @brief Displays time in following format: HH-MM-SS
+ *
+ * @param[in] hour - hour to display. If value is smaller than 0 then only single digit is displayed
+ * @param[in] minute - number of minutes to display
+ * @param[in] second - number of seconds to display
  */
 void displayHour(uint8_t hour, uint8_t minute, uint8_t second)
 {
-	tab_to_display[7] = digitToBitmask(hour / 10);
+	// hide 0 if hour digit is smaller than 10
+	if(hour / 10 == 0)
+		tab_to_display[7] = 0b00000000;
+	else
+		tab_to_display[7] = digitToBitmask(hour / 10);
+
 	tab_to_display[6] = digitToBitmask(hour % 10);
 	tab_to_display[5] = mask_hypen;
 	tab_to_display[4] = digitToBitmask(minute / 10);
@@ -208,17 +217,23 @@ void displayHour(uint8_t hour, uint8_t minute, uint8_t second)
 	tab_to_display[2] = mask_hypen;
 	tab_to_display[1] = digitToBitmask(second / 10);
 	tab_to_display[0] = digitToBitmask(second % 10);
-
-	if(hour / 10 == 0)
-		tab_to_display[7] = 0b00000000;
 }
 
 /*
  * @brief Displays date in following format: DD.MM.YYYY
+ *
+ * @param[in] day - number of day of month
+ * @param[in] month - number of month (1-January ... 12-December)
+ * @param[in] year - last two digits of year. Assuming year is after 2000 and before 2100 :D
  */
 void displayDate(uint8_t day, uint8_t month, uint8_t year)
 {
-	tab_to_display[7] = digitToBitmask(day / 10);
+	// hide 0 if day number is smaller than 10
+	if(day / 10 == 0)
+		tab_to_display[7] = 0b00000000;
+	else
+		tab_to_display[7] = digitToBitmask(day / 10);
+
 	tab_to_display[6] = digitToBitmask(day % 10);
 	tab_to_display[5] = digitToBitmask(month / 10);
 	tab_to_display[4] = digitToBitmask(month % 10);
@@ -229,7 +244,28 @@ void displayDate(uint8_t day, uint8_t month, uint8_t year)
 
 	tab_to_display[6] |= mask_dot;
 	tab_to_display[4] |= mask_dot;
+}
 
-	if(day / 10 == 0)
-			tab_to_display[7] = 0b00000000;
+/*
+ * @brief Displays temperature with two decimal points precision and Celcius degree symbol.
+ *
+ * Displaying format is: " TT.TT *C "
+ *
+ * @param[in] temperature to display
+ */
+void displayTemperature(float temperature)
+{
+	uint8_t temperature_integer = (uint8_t) temperature;
+	uint8_t temperature_fraction = (uint8_t) ((temperature - temperature_integer) * 100);
+
+	tab_to_display[7] = 0;
+	tab_to_display[6] = digitToBitmask(temperature_integer / 10);
+	tab_to_display[5] = digitToBitmask(temperature_integer % 10);
+	tab_to_display[5] |= mask_dot;
+	tab_to_display[4] = digitToBitmask(temperature_fraction / 10);
+	tab_to_display[3] = digitToBitmask(temperature_fraction % 10);
+	tab_to_display[2] = charToBitmask('*');
+	tab_to_display[1] = charToBitmask('c');
+	tab_to_display[0] = 0;
+
 }

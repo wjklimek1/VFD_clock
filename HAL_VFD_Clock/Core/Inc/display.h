@@ -55,5 +55,6 @@ uint8_t charToBitmask(char inputChar);
 void dispString(const char *string, uint8_t pos);
 void displayHour(uint8_t hour, uint8_t minute, uint8_t second);
 void displayDate(uint8_t day, uint8_t month, uint8_t year);
+void displayTemperature(float temperature);
 
 #endif /* INC_DISPLAY_H_ */

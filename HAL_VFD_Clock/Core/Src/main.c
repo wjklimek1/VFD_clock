@@ -323,6 +323,12 @@ int main(void)
 	dispString("hell0", 5);
 	HAL_Delay(2000);
 
+	//Display temperature form RTC. Useful for checking if circuit doesn't overheat insice casing.
+	float RTC_temperature;
+	DS3231_ReadTemperature(&RTC_temperature);
+	displayTemperature(RTC_temperature);
+	HAL_Delay(2000);
+
 	while (1)
 	{
 		//normal operation mode - display time and date
@@ -344,12 +350,12 @@ int main(void)
 				date_or_hour_timer = 0;
 			HAL_Delay(10);
 		}
+		//menu mode - date and time setup
 		if(SEL_flag == 1)
 		{
 			RTC_saved_flag = 0;
 			change_time(&local_RTC);
 		}
-
 	}
 }
 
