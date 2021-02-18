@@ -10,7 +10,13 @@
 
 #define MENU_WATCHDOG_MAX 3000
 
-void SystemClock_Config(void);
+void SystemClock_Config(void);                                  //Clock source and PLL init
+void HAL_TIM_PeriodElapsedCallback(TIM_HandleTypeDef *htim);    //Multiplexer timer callback
+void HAL_GPIO_EXTI_Callback(uint16_t GPIO_Pin);
+bool isLeapYear(int32_t year);
+uint8_t daysInMonth(_RTC *local_RTC);
+void change_time(_RTC *local_RTC);
+
 
 volatile uint8_t SEL_flag = 0;
 volatile uint8_t PLUS_flag = 0;
@@ -18,6 +24,75 @@ volatile uint8_t MINUS_flag = 0;
 
 volatile int32_t menu_watchdog = 0;
 volatile uint8_t RTC_saved_flag = 1;
+
+int main(void)
+{
+	HAL_Init();
+	SystemClock_Config();
+
+	MX_GPIO_Init();
+	MX_DMA_Init();
+	MX_I2C2_Init();
+	MX_TIM1_Init();
+	MX_USART1_UART_Init();
+	MX_TIM2_Init();
+	MX_TIM3_Init();
+
+	// Start timer for buzzer
+	__HAL_TIM_SET_COMPARE(&htim1, TIM_CHANNEL_1, 0);
+	HAL_TIM_PWM_Start(&htim1, TIM_CHANNEL_1);
+
+	// Start timer for VFD tube H-bridge powering
+	__HAL_TIM_SET_COMPARE(&htim2, TIM_CHANNEL_1, 500);
+	HAL_TIM_PWM_Start(&htim2, TIM_CHANNEL_1);
+
+	// Start timer for multiplexing
+	HAL_TIM_Base_Start_IT(&htim3);
+	//reset blink mask
+	blink_mask = 0b11111111;
+
+	// Init DS3231 RTC
+	_RTC local_RTC;
+	DS3231_Init(&hi2c2);
+
+	dispString("hell0", 5);
+	HAL_Delay(2000);
+
+	//Display temperature form RTC. Useful for checking if circuit doesn't overheat insice casing.
+	float RTC_temperature;
+	DS3231_ReadTemperature(&RTC_temperature);
+	displayTemperature(RTC_temperature);
+	HAL_Delay(2000);
+
+	while (1)
+	{
+		//normal operation mode - display time and date
+		if(RTC_saved_flag == 1)
+		{
+			static uint16_t date_or_hour_timer = 0;
+
+			DS3231_GetTime(&local_RTC);
+			if(date_or_hour_timer < 200)
+			{
+				displayDate(local_RTC.Date, local_RTC.Month, local_RTC.Year);
+			}
+			else
+			{
+				displayHour(local_RTC.Hour, local_RTC.Min, local_RTC.Sec);
+			}
+			date_or_hour_timer++;
+			if(date_or_hour_timer == 1200)
+				date_or_hour_timer = 0;
+			HAL_Delay(10);
+		}
+		//menu mode - date and time setup
+		if(SEL_flag == 1)
+		{
+			RTC_saved_flag = 0;
+			change_time(&local_RTC);
+		}
+	}
+}
 
 /* @brief TIM3 period elapsed callback - multiplexing
  *
@@ -288,75 +363,6 @@ void change_time(_RTC *local_RTC)
 	DS3231_SetTime(local_RTC);
 	RTC_saved_flag = 1;
 	blink_mask = 0b11111111;
-}
-
-int main(void)
-{
-	HAL_Init();
-	SystemClock_Config();
-
-	MX_GPIO_Init();
-	MX_DMA_Init();
-	MX_I2C2_Init();
-	MX_TIM1_Init();
-	MX_USART1_UART_Init();
-	MX_TIM2_Init();
-	MX_TIM3_Init();
-
-	// Start timer for buzzer
-	__HAL_TIM_SET_COMPARE(&htim1, TIM_CHANNEL_1, 0);
-	HAL_TIM_PWM_Start(&htim1, TIM_CHANNEL_1);
-
-	// Start timer for VFD tube H-bridge powering
-	__HAL_TIM_SET_COMPARE(&htim2, TIM_CHANNEL_1, 500);
-	HAL_TIM_PWM_Start(&htim2, TIM_CHANNEL_1);
-
-	// Start timer for multiplexing
-	HAL_TIM_Base_Start_IT(&htim3);
-	//reset blink mask
-	blink_mask = 0b11111111;
-
-	// Init DS3231 RTC
-	_RTC local_RTC;
-	DS3231_Init(&hi2c2);
-
-	dispString("hell0", 5);
-	HAL_Delay(2000);
-
-	//Display temperature form RTC. Useful for checking if circuit doesn't overheat insice casing.
-	float RTC_temperature;
-	DS3231_ReadTemperature(&RTC_temperature);
-	displayTemperature(RTC_temperature);
-	HAL_Delay(2000);
-
-	while (1)
-	{
-		//normal operation mode - display time and date
-		if(RTC_saved_flag == 1)
-		{
-			static uint16_t date_or_hour_timer = 0;
-
-			DS3231_GetTime(&local_RTC);
-			if(date_or_hour_timer < 200)
-			{
-				displayDate(local_RTC.Date, local_RTC.Month, local_RTC.Year);
-			}
-			else
-			{
-				displayHour(local_RTC.Hour, local_RTC.Min, local_RTC.Sec);
-			}
-			date_or_hour_timer++;
-			if(date_or_hour_timer == 1200)
-				date_or_hour_timer = 0;
-			HAL_Delay(10);
-		}
-		//menu mode - date and time setup
-		if(SEL_flag == 1)
-		{
-			RTC_saved_flag = 0;
-			change_time(&local_RTC);
-		}
-	}
 }
 
 /**

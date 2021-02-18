@@ -35,23 +35,26 @@ void selectDisplay(uint8_t displays_mask)
  *
  * It iterates through array of masks of characters that will be displayed. In a single cycle only one display is
  * activated. After 8 cycles it starts again from beginning of masks array.
+ *
+ * blink_timer is incremented every cycle by 64 and if it is lower than half of its max value,
+ * blink_mask is taken into consideration and display which corresponding bit in blink_mask is 0 will be turned off.
  */
 void multiplexerSequence()
 {
-	static uint8_t i = 0;
-	static uint8_t x = 1;
-	static uint16_t blink_timer = 0;
+	static uint8_t i = 0;              //number of currently active display
+	static uint16_t blink_timer = 0;   //
 
-	dispChar(tab_to_display[i]);
-	if(blink_timer > (0xFFFF / 2))
-		selectDisplay(x << i);
+	dispChar(tab_to_display[i]);        //set GPIOs to states described in corresponding mask in array
+	if(blink_timer > (0xFFFF / 2))      //decide if digit should blink
+		selectDisplay(1U << i);         //display digit normally
 	else
-		selectDisplay((x << i) & blink_mask);
+		selectDisplay((1U << i) & blink_mask); //if digit is masked by bit in blink_mask
+	                                           //and blink timer hasn't elapsed half of its max value, disable display
 
-	++i;
-	blink_timer += 64;
+	++i;                //increment number of currently active display
+	blink_timer += 64;  //increment blink timer
 
-	if(i >= 8)
+	if(i >= 8)          //if last display was handled, move back to first one
 		i = 0;
 }
 
